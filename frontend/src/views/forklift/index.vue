@@ -66,6 +66,7 @@
 import { onMounted, ref } from 'vue'
 
 import { request } from '@/api/client'
+import { exportModule } from '@/api/exporter'
 
 type Row = Record<string, string | number | null>
 
@@ -86,8 +87,14 @@ function resetFilters() {
   void reload()
 }
 
-function exportRows() {
-  window.open(`${ENDPOINT}/export`, '_blank')
+async function exportRows() {
+  errorMessage.value = ''
+  const module = ENDPOINT.replace('/api/', '')
+  try {
+    await exportModule(module, filters.value)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '导出失败，请稍后重试'
+  }
 }
 
 function openCreate() {

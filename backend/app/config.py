@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,8 @@ class Settings:
     )
     page_size_default: int = 20
     page_size_max: int = 200
+    # 导出批次与导出包落盘目录（相对后端工作目录），重启后续取与老包仍在。
+    export_dir: str = str(Path(__file__).resolve().parent.parent / "var" / "exports")
 
 
 settings = Settings()

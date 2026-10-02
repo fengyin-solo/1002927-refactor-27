@@ -15,8 +15,9 @@
 │   ├── src/stores/           会话与筛选状态
 │   └── vite.config.ts        dev server 配置（open: false）
 ├── backend/                  FastAPI（Python） 后端
-│   ├── app/routers/          每个业务模块一组接口
-│   ├── app/services/         业务规则与状态流转
+│   ├── app/routers/          每个业务模块一组接口（路由工厂生成）
+│   ├── app/services/         业务规则与状态流转（统一基类 + 模块差异常量）
+│   ├── app/exporting/        统一取数口径：字段清单、导出批次、续取、回填
 │   └── app/store.py          内存数据仓库与示例数据
 ├── .gitignore
 └── docker-compose.yml
@@ -70,9 +71,33 @@ npm run dev
 | 档案管理 | `archive` | 设备档案 | 档案编号、所属设备、档案类别 |
 | 维保合同 | `contract` | 维保合同 | 合同编号、签约单位、维保范围 |
 
+## 统一取数与导出
+
+各模块导出已收拢成一套写法，字段口径不再每个模块各维护一份：
+
+- **字段清单与填法只维护一份**：`app/exporting/catalog.py` 登记每个字段的取数键
+  与空值填法（`None`/空串/纯空白统一回填 `—`）；模块只在同文件的 `ModuleSpec`
+  里声明自己用哪些字段、表头顺序与既有导出文件名（`xxx清单.csv`），模板保持兼容。
+- **列表与导出同口径**：页面筛选范围与导出入口都走 `build_scope` → `select_rows`
+  → `project_rows`，同一范围在列表和导出里的条数必然一致；前端导出时把页面上
+  选中的条件原样带给 `/api/exports`。
+- **断点续取**：导出按分片落盘（`POST /api/exports` 建立，`POST /{id}/resume`
+  续取），中断后从已写入的下一行接着取；批次与文件落盘在 `backend/var/exports/`，
+  重启不丢。
+- **同一批只生成一份**：以「模块 + 范围 + 口径代次」为幂等键，重复导出直接复用
+  既有批次与文件。
+- **存量回填**：调整取数口径时把 `app/exporting/jobs.py` 的 `CURRENT_GENERATION`
+  加 1，执行 `python -m app.scripts.backfill [模块]`（或 `POST /api/exports/backfill`），
+  按新口径为存量批次生成新一代导出包；旧批次文件只读不改，新包以 `backfill_of`
+  指向老批次。
+
+旧的 `GET /api/<模块>/export` 仍保留（兼容老入口），内部同样走统一取数口径。
+
 ## 约定
 
 - 每个模块的前端页面在 `frontend/src/views/<模块>/index.vue`，后端接口在
-  `backend/app/routers/<模块>.py`，业务规则在 `backend/app/services/<模块>.py`。
+  `backend/app/routers/<模块>.py`（由 `app/routers/_factory.py` 生成），业务规则在
+  `backend/app/services/<模块>.py`（继承 `app/services/base.py`）。
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
+- 导出字段、表头顺序、文件名、空值填法只在 `app/exporting/catalog.py` 改一处。

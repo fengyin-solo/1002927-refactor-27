@@ -85,3 +85,6 @@ desktop.ini
 *.db
 *.pid
 *.seed
+
+# ===== 导出批次与导出包（运行期落盘）=====
+backend/var/
