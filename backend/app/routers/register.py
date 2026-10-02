@@ -1,10 +1,9 @@
 """使用登记接口：维护设备登记，覆盖办理登记、申请停用、申请注销等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.register import RegisterService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/register", tags=["使用登记"])
 
 service = RegisterService()
 
-LIST_FIELDS = ["设备编号", "设备名称", "设备种类", "使用单位", "安装地点", "投用日期", "登记证号", "登记状态"]
 STATUSES = ["待登记", "已登记", "停用中", "已注销"]
+
+bind_export_route(router, "register")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出使用登记清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "register", "total": total, "items": items}

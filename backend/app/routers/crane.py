@@ -1,10 +1,9 @@
 """起重机械接口：维护起重机，覆盖降载运行、安排检验、办理停用等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.crane import CraneService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/crane", tags=["起重机械"])
 
 service = CraneService()
 
-LIST_FIELDS = ["起重机编号", "起重机类型", "额定起重量", "跨度", "工作级别", "操作人员", "上次年检", "起重机状态"]
 STATUSES = ["正常", "超载运行", "检验中", "已停用"]
+
+bind_export_route(router, "crane")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出起重机械清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "crane", "total": total, "items": items}

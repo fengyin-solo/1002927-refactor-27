@@ -1,10 +1,9 @@
 """档案管理接口：维护设备档案，覆盖办理借阅、登记归还、申请销毁等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.archive import ArchiveService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/archive", tags=["档案管理"])
 
 service = ArchiveService()
 
-LIST_FIELDS = ["档案编号", "所属设备", "档案类别", "归档日期", "借阅人", "借阅日期", "归还日期", "档案状态"]
 STATUSES = ["在库", "借出中", "已归还", "已销毁"]
+
+bind_export_route(router, "archive")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出档案管理清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "archive", "total": total, "items": items}

@@ -1,10 +1,9 @@
 """能效监测接口：维护能效记录，覆盖记录偏差、分析原因、调整优化等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.energyeff import EnergyeffService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/energyeff", tags=["能效监测"])
 
 service = EnergyeffService()
 
-LIST_FIELDS = ["记录编号", "设备类型", "耗能量", "单耗指标", "对标基准", "偏差比率", "记录月份", "能效状态"]
 STATUSES = ["达标", "轻微偏差", "显著偏差", "已调整"]
+
+bind_export_route(router, "energyeff")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出能效监测清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "energyeff", "total": total, "items": items}

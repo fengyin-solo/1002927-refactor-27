@@ -1,10 +1,9 @@
 """电梯管理接口：维护电梯，覆盖安排维保、困人救援、故障检修等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.elevator import ElevatorService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/elevator", tags=["电梯管理"])
 
 service = ElevatorService()
 
-LIST_FIELDS = ["电梯编号", "电梯类型", "额定载重", "层站数", "维保单位", "上次维保", "下次维保日", "电梯状态"]
 STATUSES = ["正常运行", "维保中", "困人", "检修中"]
+
+bind_export_route(router, "elevator")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出电梯管理清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "elevator", "total": total, "items": items}

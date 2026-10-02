@@ -1,10 +1,9 @@
 """备件管理接口：维护备件，覆盖办理领用、采购入仓、停用备件等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.sparepart import SparepartService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/sparepart", tags=["备件管理"])
 
 service = SparepartService()
 
-LIST_FIELDS = ["备件编号", "备件名称", "规格型号", "适用设备", "存放位置", "最低保有量", "当前余量", "备件状态"]
 STATUSES = ["充足", "不足", "待采购", "已停用"]
+
+bind_export_route(router, "sparepart")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出备件管理清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "sparepart", "total": total, "items": items}

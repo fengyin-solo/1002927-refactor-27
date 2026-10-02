@@ -1,10 +1,9 @@
 """事故管理接口：维护事故记录，覆盖上报事故、开展调查、结案归档等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.accident import AccidentService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/accident", tags=["事故管理"])
 
 service = AccidentService()
 
-LIST_FIELDS = ["事故编号", "事故设备", "事故类型", "伤亡情况", "直接损失", "发生时间", "调查结论", "事故状态"]
 STATUSES = ["待上报", "已上报", "调查中", "已结案"]
+
+bind_export_route(router, "accident")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出事故管理清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "accident", "total": total, "items": items}

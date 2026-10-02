@@ -1,10 +1,9 @@
 """维保记录接口：维护维保记录，覆盖安排维保、开始维保、返工登记等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.maintenance import MaintenanceService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/maintenance", tags=["维保记录"])
 
 service = MaintenanceService()
 
-LIST_FIELDS = ["维保编号", "维保设备", "维保单位", "维保内容", "维保日期", "维保人员", "更换部件", "维保状态"]
 STATUSES = ["待维保", "维保中", "已完成", "需返工"]
+
+bind_export_route(router, "maintenance")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出维保记录清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "maintenance", "total": total, "items": items}

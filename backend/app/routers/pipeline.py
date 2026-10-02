@@ -1,10 +1,9 @@
 """压力管道接口：维护压力管道，覆盖记录减薄、安排检验、申请报废等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.pipeline import PipelineService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/pipeline", tags=["压力管道"])
 
 service = PipelineService()
 
-LIST_FIELDS = ["管道编号", "管道级别", "设计压力", "输送介质", "管道长度", "敷设方式", "检验日期", "管道状态"]
 STATUSES = ["正常", "壁厚减薄", "待检验", "已报废"]
+
+bind_export_route(router, "pipeline")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出压力管道清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "pipeline", "total": total, "items": items}

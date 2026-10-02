@@ -1,10 +1,9 @@
 """场车管理接口：维护场内车辆，覆盖安排维修、安排年检、申请报废等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.forklift import ForkliftService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/forklift", tags=["场车管理"])
 
 service = ForkliftService()
 
-LIST_FIELDS = ["车辆编号", "车辆类型", "动力类型", "核定载重", "行驶区域", "驾驶员", "年检日期", "车辆状态"]
 STATUSES = ["正常", "维修中", "待年检", "已报废"]
+
+bind_export_route(router, "forklift")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出场车管理清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "forklift", "total": total, "items": items}

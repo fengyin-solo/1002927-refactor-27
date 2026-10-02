@@ -1,10 +1,9 @@
 """隐患排查接口：维护隐患记录，覆盖安排整改、开始整改、验收消除等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.hazard import HazardService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/hazard", tags=["隐患排查"])
 
 service = HazardService()
 
-LIST_FIELDS = ["隐患编号", "所在设备", "隐患类别", "隐患等级", "发现日期", "整改措施", "整改期限", "隐患状态"]
 STATUSES = ["待整改", "整改中", "待验收", "已消除"]
+
+bind_export_route(router, "hazard")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出隐患排查清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "hazard", "total": total, "items": items}

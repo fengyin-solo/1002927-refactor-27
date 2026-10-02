@@ -1,10 +1,9 @@
 """安全阀校验接口：维护安全阀，覆盖安排校验、登记合格、申请报废等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.safetyvalve import SafetyvalveService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/safetyvalve", tags=["安全阀校验"])
 
 service = SafetyvalveService()
 
-LIST_FIELDS = ["安全阀编号", "所属设备", "公称通径", "整定压力", "校验日期", "下次校验日", "校验结论", "安全阀状态"]
 STATUSES = ["校验合格", "即将到期", "待校验", "已报废"]
+
+bind_export_route(router, "safetyvalve")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出安全阀校验清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "safetyvalve", "total": total, "items": items}

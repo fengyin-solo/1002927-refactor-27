@@ -1,10 +1,9 @@
 """压力容器接口：维护压力容器，覆盖降压运行、安排检验、办理停用等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.pressurevessel import PressurevesselService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/pressurevessel", tags=["压力容器"])
 
 service = PressurevesselService()
 
-LIST_FIELDS = ["容器编号", "容器类别", "设计压力", "工作温度", "介质名称", "容积", "安全附件", "容器状态"]
 STATUSES = ["正常", "超压运行", "检验中", "已停用"]
+
+bind_export_route(router, "pressurevessel")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出压力容器清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "pressurevessel", "total": total, "items": items}

@@ -1,10 +1,9 @@
 """作业人员接口：维护作业人员，覆盖安排复审、登记过期、注销证书等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.operator import OperatorService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/operator", tags=["作业人员"])
 
 service = OperatorService()
 
-LIST_FIELDS = ["人员编号", "姓名", "证书类别", "证书编号", "发证日期", "复审日期", "所属单位", "证书状态"]
 STATUSES = ["持证有效", "即将到期", "已过期", "已注销"]
+
+bind_export_route(router, "operator")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出作业人员清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "operator", "total": total, "items": items}

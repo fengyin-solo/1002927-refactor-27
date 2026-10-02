@@ -1,10 +1,9 @@
 """压力表检定接口：维护压力表，覆盖安排检定、登记合格、办理停用等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.gauge import GaugeService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/gauge", tags=["压力表检定"])
 
 service = GaugeService()
 
-LIST_FIELDS = ["压力表编号", "所属设备", "量程范围", "精度等级", "检定日期", "下次检定日", "检定结论", "仪表状态"]
 STATUSES = ["检定合格", "即将到期", "待检定", "已停用"]
+
+bind_export_route(router, "gauge")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出压力表检定清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "gauge", "total": total, "items": items}

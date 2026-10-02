@@ -1,10 +1,9 @@
 """定期检验接口：维护检验任务，覆盖安排检验、录入结论、下达整改等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.inspection import InspectionService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/inspection", tags=["定期检验"])
 
 service = InspectionService()
 
-LIST_FIELDS = ["检验编号", "被检设备", "检验类别", "检验机构", "计划检验日", "实际检验日", "检验结论", "检验状态"]
 STATUSES = ["待检验", "检验中", "合格", "不合格"]
+
+bind_export_route(router, "inspection")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出定期检验清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "inspection", "total": total, "items": items}

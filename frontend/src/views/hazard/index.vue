@@ -87,7 +87,8 @@ function resetFilters() {
 }
 
 function exportRows() {
-  window.open(`${ENDPOINT}/export`, '_blank')
+  const query = new URLSearchParams(filters.value as Record<string, string>).toString()
+  window.open(`${ENDPOINT}/export?${query}`, '_blank')
 }
 
 function openCreate() {

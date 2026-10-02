@@ -1,10 +1,9 @@
 """维保合同接口：维护维保合同，覆盖签订合同、到期续签、终止合同等动作。"""
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Query
 
+from app.exporting.routes import bind_export_route
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.contract import ContractService
 
@@ -12,8 +11,9 @@ router = APIRouter(prefix="/api/contract", tags=["维保合同"])
 
 service = ContractService()
 
-LIST_FIELDS = ["合同编号", "签约单位", "维保范围", "合同金额", "签约日期", "到期日期", "是否续签", "合同状态"]
 STATUSES = ["待签约", "执行中", "即将到期", "已终止"]
+
+bind_export_route(router, "contract")
 
 
 @router.get("", response_model=PageResult[dict])
@@ -57,9 +57,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
 
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出维保合同清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "contract", "total": total, "items": items}
